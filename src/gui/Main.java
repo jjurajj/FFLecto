@@ -57,7 +57,9 @@ public class Main {
 	private JButton btnStop;
         public final String lecto_dir_win = "C:\\Lecto";
         //"C:\\Users\\juraj\\Desktop\\Lecto";//
+    
         
+    // Za dohvacanje putanje do ffmpega. Ali bolje da ga se doda u path.
     public String getFFMPEGPath(JFrame frame) {
         
         String path = "C:\\Program\\ Files\\ffmpeg\\bin\\ffmpeg.exe";
@@ -140,17 +142,17 @@ public class Main {
 		panel.setLayout(null);
 
             try {
-                Process p = Runtime.getRuntime().exec("C:\\Progra~1\\ffmpeg\\bin\\ffmpeg.exe 2>C:\\Lecto\\bla.txt");
+                Process p = Runtime.getRuntime().exec("C:\\Lecto\\list.bat");
             } catch (IOException ex) {
                 Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
             }
                 
                 int y_offset = 20;
                 
-                String ffmpeg_path = getFFMPEGPath(frame);                               // Provjeri lokaciju ffmpeg.exe
+                /*String ffmpeg_path = getFFMPEGPath(frame);                               // Provjeri lokaciju ffmpeg.exe
                 if (ffmpeg_path.equals(null)) {
                     System.out.print("Nedefinirana putanja do FFMPEGa");
-                }
+                }*/
                 
                 if (!createAppDir (lecto_dir_win)) {                // Stvori lokalni dir u koji ces spremit settingse i logove
                     System.out.print("Neuspjesno otvaranje fajla");
