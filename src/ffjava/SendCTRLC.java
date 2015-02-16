@@ -1,4 +1,4 @@
-package fflecto;
+package ffjava;
 
 /* 
  * Sends CTRL-C to running processes from Java (in Windows)
