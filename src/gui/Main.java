@@ -245,7 +245,8 @@ public class Main {
             
             // Sad trebamo izlistat i proparsat deviceove
             String devices_cmd = this.ffmpeg_list + " 2>" + lecto_dir_win + "\\devices.txt";
-            ArrayList<String> video_dev, audio_dev = new ArrayList<>();
+            ArrayList<String> video_dev = new ArrayList<>();
+            ArrayList<String> audio_dev = new ArrayList<>();
             try {
                 String devices_text = writeRunBatGetText (devices_cmd, "\\devices.txt");
                 video_dev = parseDevices(devices_text, "video");
@@ -317,10 +318,10 @@ public class Main {
 		panel.add(label);
                 
                 final JComboBox<String> comboOutput = new JComboBox<String>();
-                comboOutput.addItem(Messages.getString("Main.btnPlainText.text"));
-                comboOutput.addItem(Messages.getString("Main.btnFindConfigFile.text"));
-                comboOutput.addItem(Messages.getString("Main.btnNewButton.text"));
-                comboOutput.setBounds(30, 150, 118, 20);
+                for (String video_item : video_dev) {
+                    comboOutput.addItem(video_item);
+                }
+                comboOutput.setBounds(30, 150, 150, 20);
                 panel.add(comboOutput);
                 
                 comboOutput.addActionListener(new ActionListener() {
