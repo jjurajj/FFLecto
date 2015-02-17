@@ -31,14 +31,20 @@ import java.util.Scanner;
 import javax.swing.JSeparator;
 import javax.swing.JTextField;
 import java.awt.Font;
+import java.io.BufferedReader;
+import java.io.FileReader;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JMenuItem;
+import jdk.nashorn.internal.codegen.CompilerConstants;
 
 public class Main {
 
@@ -56,8 +62,106 @@ public class Main {
 	private Timer timer1;
 	private JButton btnStop;
         public final String lecto_dir_win = "C:\\Lecto";
-        //"C:\\Users\\juraj\\Desktop\\Lecto";//
+        public String ffmpeg_path;
+        public final String ffmpeg_version = "ffmpeg -version";
+        public String ffmpeg_to_path = "setx path \"%PATH%;###\" ";
+        public final String ffmpeg_list = "ffmpeg -list_devices true -f dshow -i dummy";
     
+    private ArrayList<String> parseDevices(String text, String type) {
+        
+        ArrayList<String> devices = new ArrayList<>();
+        
+        // po defaultu uzmi video, a ak ne onda audio deviceove
+        if (type=="video")
+            text = text.substring(text.indexOf("DirectShow video devices"),text.indexOf("DirectShow audio devices"));
+        else if (type=="audio")
+            text = text.substring(text.indexOf("DirectShow audio devices")); 
+        else return devices;
+        
+        while (text.contains("\"")) {
+            int start = text.indexOf("\"");
+            text = text.substring(start+1);
+            int end = text.indexOf("\"");
+            devices.add(text.substring(0,end));
+            text = text.substring(end+1);
+        }
+        return devices;
+    }
+        
+    public String writeRunBatGetText (String command, String txt_file) throws IOException {
+    
+        String bat_file = "\\temp_skripta.bat";
+        File file = new File(lecto_dir_win + bat_file);
+        file.createNewFile();
+        PrintWriter writer = new PrintWriter(file, "UTF-8");
+        writer.println(command);
+        writer.close();
+        Process p = Runtime.getRuntime().exec(lecto_dir_win + bat_file); //"cmd /c start a.bat"
+            try {
+                p.waitFor();
+            } catch (InterruptedException ex) {
+                Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        file.delete();
+        
+        file = new File(lecto_dir_win + txt_file);
+        if (file.exists()) {
+            List<String> lines = Files.readAllLines(Paths.get(lecto_dir_win + txt_file),StandardCharsets.UTF_8);
+            String text = lines.toString();
+            return text;
+        } else {
+            // Nema autputa ili je nes neuspjelo
+            return "";
+            //String custom_path = (String)JOptionPane.showInputDialog(frame, "Neuspjesno odredivanje ffmpeg verzije.", "Fatal error.", JOptionPane.INFORMATION_MESSAGE);
+            //System.exit(0);
+        }
+        
+    }
+        
+    public void initializeOnWindoes(JFrame frame) throws IOException {
+
+        // Napravi lecto win folder
+        boolean success=true;
+        File file = new File(lecto_dir_win);
+	if (!file.exists()) {success = file.mkdir();}
+        if (!success) {
+            String custom_path = (String)JOptionPane.showInputDialog(frame, "Neuspjesna inicijalizacija FFLecto alata.", "Fatal error.", JOptionPane.INFORMATION_MESSAGE);
+            System.exit(0);
+        }
+
+        // procitaj je li zapisana lokacija ffmpega u config.txtu ili pitaj za nju
+        file = new File(lecto_dir_win+"\\config.txt");
+	try {
+            BufferedReader in = new BufferedReader(new FileReader(lecto_dir_win+"\\config.txt"));
+            String line = in.readLine();
+            this.ffmpeg_path = line;
+            in.close();
+        } catch (FileNotFoundException ex) {
+            this.ffmpeg_path = getFFMPEGPath(frame);
+            // tu sad jos napisi config.txt fajl s lokaicjom
+        }
+        if (this.ffmpeg_path.isEmpty()) {
+            String custom_path = (String)JOptionPane.showInputDialog(frame, "Neuspjesno odredivanje ffmpeg putanje.", "Fatal error.", JOptionPane.INFORMATION_MESSAGE);
+            System.exit(0);
+        }
+
+        // napisi i izvrti version skriptu
+        String version_cmd = ffmpeg_version + ">" + lecto_dir_win + "\\version.txt";
+        String version_text = writeRunBatGetText (version_cmd, "\\version.txt");
+        
+        // ako izlaz version skripte nije ocekivan onda dodaj ffmpeg u path i probaj opet
+        if (version_text.indexOf("ffmpeg version") > 4) {
+            String add_ffmpeg_to_path_cmd = this.ffmpeg_path.replace(("###"), this.ffmpeg_path);
+            version_text = writeRunBatGetText (add_ffmpeg_to_path_cmd, "\\version.txt");
+            version_cmd = ffmpeg_version + ">" + lecto_dir_win + "\\version.txt";
+            version_text = writeRunBatGetText (version_cmd, "\\version.txt");
+            if (version_text.substring(0, 14) != "ffmpeg version") {
+                String error_message = (String)JOptionPane.showInputDialog(frame, "Neuspjesno odredivanje ffmpeg verzije.", "Fatal error.", JOptionPane.INFORMATION_MESSAGE);
+                System.exit(0);
+            }
+        }
+        
+    }
         
     // Za dohvacanje putanje do ffmpega. Ali bolje da ga se doda u path.
     public String getFFMPEGPath(JFrame frame) {
@@ -94,15 +198,6 @@ public class Main {
         //frame,"Putanja za ffmpeg:", "Customized Dialog", JOptionPane.QUESTION_MESSAGE, possibilities, "C:\\");
                 
     }
-    
-    public boolean createAppDir(String dir) {
-        File file = new File(dir);
-	if (!file.exists()) {
-            return file.mkdir();
-        } else return true;
-    }
-
-        
         
 	public static void main(String[] args) {
 		EventQueue.invokeLater(new Runnable() {
@@ -132,20 +227,35 @@ public class Main {
         
 	private void initialize() {
                 
-                frame = new JFrame();
-		frame.setTitle(Messages.getString("Main.mainTitle.title")); //$NON-NLS-1$
-		frame.setBounds(200, 100, 500, 470);
-		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+            frame = new JFrame();
+            frame.setTitle(Messages.getString("Main.mainTitle.title")); //$NON-NLS-1$
+            frame.setBounds(200, 100, 500, 470);
+            frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-		final JPanel panel = new JPanel();
-		frame.getContentPane().add(panel, BorderLayout.CENTER);
-		panel.setLayout(null);
+            final JPanel panel = new JPanel();
+            frame.getContentPane().add(panel, BorderLayout.CENTER);
+            panel.setLayout(null);
 
+            // Ovo  postavlja ffmpeg path, po potrebi ga dodaje u path ili locira
             try {
-                Process p = Runtime.getRuntime().exec("C:\\Lecto\\list.bat");
+                initializeOnWindoes(frame);
             } catch (IOException ex) {
                 Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
             }
+            
+            // Sad trebamo izlistat i proparsat deviceove
+            String devices_cmd = this.ffmpeg_list + " 2>" + lecto_dir_win + "\\devices.txt";
+            ArrayList<String> video_dev, audio_dev = new ArrayList<>();
+            try {
+                String devices_text = writeRunBatGetText (devices_cmd, "\\devices.txt");
+                video_dev = parseDevices(devices_text, "video");
+                audio_dev = parseDevices(devices_text, "audio");
+                // Sad parsamo taj tekst
+            } catch (IOException ex) {
+                String error_message = (String)JOptionPane.showInputDialog(frame, "Neuspjesno listanje medijskih inputa.", "Fatal error.", JOptionPane.INFORMATION_MESSAGE);
+                System.exit(0);
+            }
+            
                 
                 int y_offset = 20;
                 
@@ -153,18 +263,11 @@ public class Main {
                 if (ffmpeg_path.equals(null)) {
                     System.out.print("Nedefinirana putanja do FFMPEGa");
                 }*/
-                
-                if (!createAppDir (lecto_dir_win)) {                // Stvori lokalni dir u koji ces spremit settingse i logove
-                    System.out.print("Neuspjesno otvaranje fajla");
-                }
+
                 
                 FFLeCTo ff = new FFLeCTo();
                 
-                try {
-                    ArrayList<String> devices = ff.listDevices(ffmpeg_path, lecto_dir_win);
-                } catch (FileNotFoundException ex) {
-                    Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
-                }
+                //ArrayList<String> devices = ff.listDevices(ffmpeg_path, lecto_dir_win);
                 
                 JLabel lblNewLabel_domain = new LocLabel("Main.lblNewLabel.text");
 		lblNewLabel_domain.setText(Messages.getString("Main.customFFMPEGCommand.text")); //$NON-NLS-1$
