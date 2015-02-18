@@ -44,6 +44,8 @@ import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JMenuItem;
+import javax.swing.JSplitPane;
+import javax.swing.JTabbedPane;
 import jdk.nashorn.internal.codegen.CompilerConstants;
 
 public class Main {
@@ -150,7 +152,7 @@ public class Main {
         String version_text = writeRunBatGetText (version_cmd, "\\version.txt");
         
         // ako izlaz version skripte nije ocekivan onda dodaj ffmpeg u path i probaj opet
-        if (version_text.indexOf("ffmpeg version") > 4) {
+        if (version_text.indexOf("ffmpeg version") == -1) {
             String add_ffmpeg_to_path_cmd = this.ffmpeg_path.replace(("###"), this.ffmpeg_path);
             version_text = writeRunBatGetText (add_ffmpeg_to_path_cmd, "\\version.txt");
             version_cmd = ffmpeg_version + ">" + lecto_dir_win + "\\version.txt";
@@ -226,16 +228,32 @@ public class Main {
         }
         
 	private void initialize() {
-                
+            
+            // Inicijalizacija glavnog frejma i njegova tri podprozora: gore start/stop, sedina su tabovi s postavkama
             frame = new JFrame();
             frame.setTitle(Messages.getString("Main.mainTitle.title")); //$NON-NLS-1$
             frame.setBounds(200, 100, 500, 470);
             frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-            final JPanel panel = new JPanel();
-            frame.getContentPane().add(panel, BorderLayout.CENTER);
-            panel.setLayout(null);
-
+            JPanel panel_top = new JPanel();
+            JPanel panel_tabs = new JPanel();
+            //JPanel panel_command = new JPanel();
+            
+            JSplitPane topPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, true, panel_top, panel_tabs);
+            //JSplitPane bottomPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT);
+            //bottomPane.setBottomComponent(panel_command);
+            //topPane.setBottomComponent(bottomPane);
+            topPane.setDividerLocation(120);
+            topPane.setOneTouchExpandable(true);
+            topPane.setVisible(true);
+            topPane.setOneTouchExpandable(false);
+            topPane.setEnabled( false );
+            
+            frame.getContentPane().add(topPane);
+            
+            
+            
+            
             // Ovo  postavlja ffmpeg path, po potrebi ga dodaje u path ili locira
             try {
                 initializeOnWindoes(frame);
@@ -274,13 +292,13 @@ public class Main {
 		lblNewLabel_domain.setText(Messages.getString("Main.customFFMPEGCommand.text")); //$NON-NLS-1$
 		lblNewLabel_domain.setFont(new Font("Tahoma", Font.BOLD, 15));
 		lblNewLabel_domain.setBounds(30, y_offset, 350, 30);
-		panel.add(lblNewLabel_domain);
+		panel_tabs.add(lblNewLabel_domain);
 
                 domainField = new JTextField();
 		domainField.setBounds(200, y_offset + 4, 240, 25);
 		domainField.setText(Messages.getString("Main.commandDummy.text"));
                 domainField.setColumns(8);
-		panel.add(domainField);
+		panel_tabs.add(domainField);
 		
                 Scanner s;
 		try {
@@ -301,7 +319,7 @@ public class Main {
 
 		JSeparator separator = new JSeparator();
 		separator.setBounds(10, y_offset + 75, 260, 2);
-		panel.add(separator);
+		panel_tabs.add(separator);
 
                 // Na vrhu start i stop botun
                 //4 checkbotuna za 4 av kombinacije
@@ -311,19 +329,62 @@ public class Main {
                 // sve se pamti i ucitava
                 // Na dnu custom ffmpeg command
                 
+                //TabbedPaneExample tp = new TabbedPaneExample();
+                
+                
+                
+                //JTabbedPane tabs=new JTabbedPane();
+                //tabs.addTab("title", panel);//add a tab for the panel with the title "title"
+                //you can add more tabs in the same fashion - obviously you can change the title
+                //tabs.addTab("another tab", panel);//where comp is a Component that will occupy the tab
+                //tabs.setSize(100, 100);
+                //tabs.setBounds(100, 100, 100, 100);
+                //frame.setContentPane(tabs);//the JFrame will now display the tabbed pane
                 
                 JLabel label = new LocLabel("Main.label.text"); //$NON-NLS-1$
 		label.setFont(new Font("Tahoma", Font.BOLD, 14));
 		label.setBounds(30, 110, 118, 20);
-		panel.add(label);
+		panel_tabs.add(label);
                 
-                final JComboBox<String> comboOutput = new JComboBox<String>();
+                int x = 80;
+                                
+                final JComboBox<String> videoSources = new JComboBox<String>();
                 for (String video_item : video_dev) {
-                    comboOutput.addItem(video_item);
+                    videoSources.addItem(video_item);
                 }
-                comboOutput.setBounds(30, 150, 150, 20);
-                panel.add(comboOutput);
+                videoSources.setBounds(x, 150, 150, 20);
+                panel_tabs.add(videoSources);
                 
+                final JComboBox<String> audioSources = new JComboBox<String>();
+                for (String audio_item : audio_dev) {
+                    audioSources.addItem(audio_item);
+                }
+                audioSources.setBounds(x+250, 150, 150, 20);
+                panel_tabs.add(audioSources);
+
+                int y = 170;
+                JTextField bitrateField = new JTextField();
+                bitrateField.setEditable(false);
+		bitrateField.setText(Messages.getString("Main.textField.text"));
+		bitrateField.setBounds(x, y, 119, 20);
+                bitrateField.setColumns(10);
+		panel_tabs.add(bitrateField);
+
+                JTextField framerateField = new JTextField();
+                framerateField.setEditable(false);
+		framerateField.setText(Messages.getString("Main.textField.text"));
+		framerateField.setBounds(x, y+20, 119, 20);
+                framerateField.setColumns(10);
+		panel_tabs.add(framerateField);
+                
+                JTextField sizeField = new JTextField();
+                sizeField.setEditable(false);
+		sizeField.setText(Messages.getString("Main.textField.text"));
+		sizeField.setBounds(x, y+40, 119, 20);
+                sizeField.setColumns(10);
+		panel_tabs.add(sizeField);
+
+                /*
                 comboOutput.addActionListener(new ActionListener() {
                     @Override
                     public void actionPerformed(ActionEvent event) {
@@ -363,27 +424,23 @@ public class Main {
                         
                     }
                 });
-
-                configField = new JTextField();
-                configField.setEditable(false);
-		configField.setText(Messages.getString("Main.textField.text"));
-		configField.setBounds(30, 170, 119, 20);
-                configField.setColumns(10);
-		panel.add(configField);
+                */
                 
-		final JCheckBox userId = new LocCheckBox("Main.chckbxSenderId.text"); //$NON-NLS-1$
+
+                
+		final JCheckBox userId = new LocCheckBox("Use"); //$NON-NLS-1$
 		userId.setSelected(true);
 		userId.setBounds(180, 148, 97, 23);
-		panel.add(userId);
+		//panel.add(userId);
 
 		final JCheckBox message = new LocCheckBox("Main.chckbxMessage.text"); //$NON-NLS-1$
 		message.setSelected(true);
 		message.setBounds(180, 168, 97, 23);
-		panel.add(message);
+		//panel.add(message);
 
 		JSeparator separator_1 = new JSeparator();
 		separator_1.setBounds(10, y_offset + 200 , 260, 2);
-		panel.add(separator_1);
+		panel_tabs.add(separator_1);
 
 		JLabel lblInputControl = new LocLabel("Main.lblInputControl.text"); //$NON-NLS-1$
 		lblInputControl.setFont(new Font("Tahoma", Font.BOLD, 14));
@@ -458,8 +515,8 @@ public class Main {
                     if (pisi) {pw.write(domena);}
                     String nl = System.getProperty("line.separator");
                     
-                    if (comboOutput.getSelectedItem().equals("Plain text")) {pw.write(nl + "Plain");}
-                    else {pw.write(nl + "Config");}
+                    //if (comboOutput.getSelectedItem().equals("Plain text")) {pw.write(nl + "Plain");}
+                    //else {pw.write(nl + "Config");}
                     
                     if (userId.isSelected()) {pw.write(nl + "UserId");}
                     else {pw.write(nl + "NoUserId");}
@@ -520,8 +577,8 @@ public class Main {
 		JButton btnStart = new LocButton("Main.btnStart.text"); //$NON-NLS-1$
 		btnStart.setActionCommand(Actions.START.name());
                 btnStart.addActionListener(al_big);
-		btnStart.setBounds(35+5, y_offset + 250, 89, 23);
-		panel.add(btnStart);
+		btnStart.setBounds(35+5+50, y_offset+150, 89, 50);
+		panel_top.add(btnStart);
 
 		btnStop = new LocButton("Main.btnStop.text"); //$NON-NLS-1$
                 btnStop.setActionCommand(Actions.STOP.name());
@@ -536,28 +593,10 @@ public class Main {
 				
 			}
 		});
-		btnStop.setBounds(150+5, y_offset + 250, 89, 23);
-		panel.add(btnStop);
+		btnStop.setBounds(150+5+50, y_offset+150, 89, 50);
+		panel_top.add(btnStop);
 
-		JButton btnResend = new LocButton("Main.btnResend.text"); //$NON-NLS-1$
-		btnResend.setActionCommand(Actions.RESEND.name());
-                btnResend.setBounds(85+5, y_offset + 290, 100, 25);
-		btnResend.addActionListener(al_big);
-		panel.add(btnResend);
-
-		JSeparator separator_2 = new JSeparator();
-		separator_2.setBounds(10, y_offset + 340, 260, 2);
-		panel.add(separator_2);
-
-		//JLabel statusLabel = new LocLabel(Messages.getString("Main.lblToInitiate.text")); //$NON-NLS-1$
-                statusLabel = new JLabel(Messages.getString("Main.lblToInitiate.text")); //$NON-NLS-1$
-                //statusLabel = new JLabel(Messages.getString("Main.lblToInitiate.text")); //$NON-NLS-1$
-                statusLabel.setFont(new Font("Tahoma", 2, 12));
-                statusLabel.setText(Messages.getString("Main.lblToInitiate.text"));
-                //statusLabel.setText(Messages.getString("Main.lblToInitiate.text"));
-		statusLabel.setBounds(30+5, y_offset + 360, 260, 30);
-		panel.add(statusLabel);
-
+		
 		JMenuBar menuBar = new JMenuBar();
 		menuBar.add(Box.createHorizontalGlue());
 		frame.setJMenuBar(menuBar);
@@ -574,10 +613,10 @@ public class Main {
 				Messages.fire();
                                 // Ovo ne bi trebalo ic tu ali iz nekog razloga mora;
                                 configField.setText(Messages.getString("Main.textField.text"));
-                                comboOutput.removeAllItems();
-                                comboOutput.addItem(Messages.getString("Main.btnPlainText.text"));
-                                comboOutput.addItem(Messages.getString("Main.btnFindConfigFile.text"));
-                                comboOutput.addItem(Messages.getString("Main.btnNewButton.text"));
+                                //comboOutput.removeAllItems();
+                                //comboOutput.addItem(Messages.getString("Main.btnPlainText.text"));
+                                //comboOutput.addItem(Messages.getString("Main.btnFindConfigFile.text"));
+                                //comboOutput.addItem(Messages.getString("Main.btnNewButton.text"));
                                 statusLabel.setText(Messages.getString("Main.lblToInitiate.text"));
                                 
 			}
@@ -595,10 +634,10 @@ public class Main {
                                 // Ovo ne bi trebalo ic tu ali iz nekog razloga mora;
                                 configField.setText(Messages.getString("Main.textField.text"));
                                 statusLabel.setText(Messages.getString("Main.lblToInitiate.text"));
-                                comboOutput.removeAllItems();
-                                comboOutput.addItem(Messages.getString("Main.btnPlainText.text"));
-                                comboOutput.addItem(Messages.getString("Main.btnFindConfigFile.text"));
-                                comboOutput.addItem(Messages.getString("Main.btnNewButton.text"));
+                                //comboOutput.removeAllItems();
+                                //comboOutput.addItem(Messages.getString("Main.btnPlainText.text"));
+                                //comboOutput.addItem(Messages.getString("Main.btnFindConfigFile.text"));
+                                //comboOutput.addItem(Messages.getString("Main.btnNewButton.text"));
                 
 			}
 		});
