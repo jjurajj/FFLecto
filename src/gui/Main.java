@@ -32,7 +32,9 @@ import javax.swing.JSeparator;
 import javax.swing.JTextField;
 import java.awt.Font;
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -64,10 +66,11 @@ public class Main {
 	private Timer timer1;
 	private JButton btnStop;
         public final String lecto_dir_win = "C:\\Lecto";
+        public String ffmpeg = "ffmpeg.exe"; 
         public String ffmpeg_path;
-        public final String ffmpeg_version = "ffmpeg -version";
-        public String ffmpeg_to_path = "setx path \"%PATH%;###\" ";
-        public final String ffmpeg_list = "ffmpeg -list_devices true -f dshow -i dummy";
+        public final String ffmpeg_version = " -version";
+        //public String ffmpeg_to_path = "set PATH=%PATH%;### "; //"setx /M PATH=%PATH%;### "; // ali mora bit kao admin:/ 
+        public final String ffmpeg_list = " -list_devices true -f dshow -i dummy";
     
     private ArrayList<String> parseDevices(String text, String type) {
         
@@ -123,12 +126,14 @@ public class Main {
     public void initializeOnWindoes(JFrame frame) throws IOException {
 
         // Napravi lecto win folder
-        boolean success=true;
+        //Process p = Runtime.getRuntime().exec(new String[] { "mkdir", lecto_dir_win });
         File file = new File(lecto_dir_win);
-	if (!file.exists()) {success = file.mkdir();}
-        if (!success) {
-            String custom_path = (String)JOptionPane.showInputDialog(frame, "Neuspjesna inicijalizacija FFLecto alata.", "Fatal error.", JOptionPane.INFORMATION_MESSAGE);
-            System.exit(0);
+        boolean success=true;
+	if (!file.exists()) {
+            if (!file.mkdir()) {
+                String custom_path = (String)JOptionPane.showInputDialog(frame, "Neuspjesna inicijalizacija FFLecto alata.", "Fatal error.", JOptionPane.INFORMATION_MESSAGE);
+                System.exit(0);
+            }
         }
 
         // procitaj je li zapisana lokacija ffmpega u config.txtu ili pitaj za nju
@@ -136,11 +141,18 @@ public class Main {
 	try {
             BufferedReader in = new BufferedReader(new FileReader(lecto_dir_win+"\\config.txt"));
             String line = in.readLine();
-            this.ffmpeg_path = line;
+            this.ffmpeg_path = line.substring("ffmpeg_path=".length());
             in.close();
+            
+            // Ovo ce ga srusiti ako fajl ne postoji pa ce otici u "catch"
+            BufferedReader test = new BufferedReader(new FileReader(this.ffmpeg_path+"\\ffmpeg.exe")); 
+            test.close();
         } catch (FileNotFoundException ex) {
+            // Pitaj za loakciju i zapisi ju u fajl za iduci put
             this.ffmpeg_path = getFFMPEGPath(frame);
-            // tu sad jos napisi config.txt fajl s lokaicjom
+            BufferedWriter out = new BufferedWriter(new FileWriter(lecto_dir_win+"\\config.txt"));
+            out.write("ffmpeg_path="+this.ffmpeg_path);
+            out.close();
         }
         if (this.ffmpeg_path.isEmpty()) {
             String custom_path = (String)JOptionPane.showInputDialog(frame, "Neuspjesno odredivanje ffmpeg putanje.", "Fatal error.", JOptionPane.INFORMATION_MESSAGE);
@@ -148,19 +160,18 @@ public class Main {
         }
 
         // napisi i izvrti version skriptu
-        String version_cmd = ffmpeg_version + ">" + lecto_dir_win + "\\version.txt";
+        String version_cmd = this.ffmpeg_path.replace(" ", "^ ") + "\\ffmpeg.exe" + this.ffmpeg_version + " > " + lecto_dir_win + "\\version.txt";
         String version_text = writeRunBatGetText (version_cmd, "\\version.txt");
         
         // ako izlaz version skripte nije ocekivan onda dodaj ffmpeg u path i probaj opet
-        if (version_text.indexOf("ffmpeg version") == -1) {
-            String add_ffmpeg_to_path_cmd = this.ffmpeg_path.replace(("###"), this.ffmpeg_path);
-            version_text = writeRunBatGetText (add_ffmpeg_to_path_cmd, "\\version.txt");
-            version_cmd = ffmpeg_version + ">" + lecto_dir_win + "\\version.txt";
-            version_text = writeRunBatGetText (version_cmd, "\\version.txt");
-            if (version_text.substring(0, 14) != "ffmpeg version") {
-                String error_message = (String)JOptionPane.showInputDialog(frame, "Neuspjesno odredivanje ffmpeg verzije.", "Fatal error.", JOptionPane.INFORMATION_MESSAGE);
-                System.exit(0);
-            }
+        if ((version_text.equals("")) || (version_text.indexOf("ffmpeg version") == -1)) {
+            //String add_ffmpeg_to_path_cmd = this.ffmpeg_to_path.replace(("###"), this.ffmpeg_path);
+            //version_text = writeRunBatGetText (add_ffmpeg_to_path_cmd, "\\version.txt");
+            //version_cmd = ffmpeg_version + " 2> " + lecto_dir_win + "\\version.txt";
+            //version_text = writeRunBatGetText (version_cmd, "\\version.txt");
+            String error_message = (String)JOptionPane.showInputDialog(frame, "Neuspjesno odredivanje ffmpeg verzije. Mogući uzroci: \nalat FFMPEG nema sve potrebne komponente ili je corrupt\nko zna kaj.", "Fatal error.", JOptionPane.INFORMATION_MESSAGE);
+            System.exit(0);
+            
         }
         
     }
@@ -262,7 +273,7 @@ public class Main {
             }
             
             // Sad trebamo izlistat i proparsat deviceove
-            String devices_cmd = this.ffmpeg_list + " 2>" + lecto_dir_win + "\\devices.txt";
+            String devices_cmd = this.ffmpeg_path.replace(" ","^ ") + "\\ffmpeg.exe " + this.ffmpeg_list + " 2>" + lecto_dir_win + "\\devices.txt";
             ArrayList<String> video_dev = new ArrayList<>();
             ArrayList<String> audio_dev = new ArrayList<>();
             try {
@@ -271,7 +282,7 @@ public class Main {
                 audio_dev = parseDevices(devices_text, "audio");
                 // Sad parsamo taj tekst
             } catch (IOException ex) {
-                String error_message = (String)JOptionPane.showInputDialog(frame, "Neuspjesno listanje medijskih inputa.", "Fatal error.", JOptionPane.INFORMATION_MESSAGE);
+                String error_message = (String)JOptionPane.showInputDialog(frame, "Neuspjesno listanje medijskih inputa. Korištena naredba za listanje:\n" + devices_cmd, "Fatal error.", JOptionPane.INFORMATION_MESSAGE);
                 System.exit(0);
             }
             
