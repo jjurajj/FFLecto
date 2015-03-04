@@ -72,6 +72,8 @@ public class Main {
         //public String ffmpeg_to_path = "set PATH=%PATH%;### "; //"setx /M PATH=%PATH%;### "; // ali mora bit kao admin:/ 
         public final String ffmpeg_list = " -list_devices true -f dshow -i dummy";
     
+    // Ovo parsa string koji predstavlja output ffmpega na upit o dostupnim deviceovima
+    // i vraca ArrrayList audio ili video deviceova (koji se zada)
     private ArrayList<String> parseDevices(String text, String type) {
         
         ArrayList<String> devices = new ArrayList<>();
@@ -92,7 +94,9 @@ public class Main {
         }
         return devices;
     }
-        
+    
+    // U nedostatku boljeg ffmpeg naredbe bi spremao u .bat file, izvodio ga
+    // i redirectao output u text fajl koji procitam i ovom metodom vratim taj tekst
     public String writeRunBatGetText (String command, String txt_file) throws IOException {
     
         String bat_file = "\\temp_skripta.bat";
@@ -122,7 +126,8 @@ public class Main {
         }
         
     }
-        
+    
+    // Napravim Lecto folder negdje i provjerim gdje se nalazi ffmpeg
     public void initializeOnWindoes(JFrame frame) throws IOException {
 
         // Napravi lecto win folder
@@ -177,6 +182,7 @@ public class Main {
     }
         
     // Za dohvacanje putanje do ffmpega. Ali bolje da ga se doda u path.
+    // Treba paziti s escapeanjem specijalnih znakova u putanju = " "
     public String getFFMPEGPath(JFrame frame) {
         
         String path = "C:\\Program\\ Files\\ffmpeg\\bin\\ffmpeg.exe";
